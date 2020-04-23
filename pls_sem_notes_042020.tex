@@ -1,0 +1,169 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage[colorlinks = true,
+            linkcolor = blue,
+            urlcolor  = blue,
+            citecolor = blue,
+            anchorcolor = blue]{hyperref}
+\title{PLS SEM Notes}
+\author{Steven Hurwitt}
+\date{April 21st, 2020}
+
+\begin{document}
+
+\maketitle
+
+\section{Alternative Estimation Methods}
+
+This is pulled from \href{http://web.pdx.edu/~newsomj/semclass/ho_estimate.pdf}{Jason Newsom's class notes} for PSY 523 at Portland State University. Additional details were gathered from \href{https://digitalcommons.unl.edu/cgi/viewcontent.cgi?article=1146&context=cehsdiss}{this thesis} by Frances Chumney from the University of Nebraska.
+
+\paragraph{}
+To introduce some of the notation:
+
+\begin{enumerate}
+\item $\Sigma (\hat{\theta})$ is the covariance structure - a composite of the covariance matrix of the predictor, covariance matrix of the criterion and the covariance matrix of the predictor with the criterion.
+
+\item $\hat{\theta}$ are the estimated parameters.
+
+\item $S$ is the covariance matrix observed in the data.
+
+\item $p$ is the number of observed indicators for the endogeneous latent factors, and $q$ is the number of observed indicators for the exogeneous latent factors.
+\end{enumerate}
+
+\subsection{Maximum Likelihood (ML)}
+Maximum likelihood uses derivatives to minimize this fit function:
+
+$$ F_{ML} = \log \mid \Sigma (\hat{\theta}) \mid + tr \big( S \Sigma^{-1} (\hat{\theta}) \big) - \log \mid S \mid - (p + q)$$
+
+\subsection{Generalized Least Squares (GLS)}
+Generalized least squares minimizes the discrepancy between $S$ and $\Sigma$, but uses a weight matrix for the residuals, $W$ (usually the inverse of the covariance $S$).
+
+$$F_{GLS} = \bigg(\frac{1}{2} \bigg) tr \Big( \big[S - \Sigma(\hat{\theta}) W^{-1} \big]^2 \Big)$$
+
+\subsection{Weighted Least Squares (WLS)}
+Weighted least squares does not assume multivariate normality and instead is based on the variances and kurtosises (covariance of the covariance). This differs from unweighted least squares (ULS) and the above methods in that the choice of $W$ differs.
+
+$$F_{WLS} = \big( s - \sigma \big)^T W^{-1} \big( s - \sigma \big) $$
+
+\subsection{Unweighted Least Squares (ULS)}
+This method essentially seeks to minimize $$ \| S - \Sigma(\hat{\theta}) \|^2$$
+which can be judged by a Goodness of Fit Index (GFI) or CMIN criterion.
+
+
+\subsection{Diagonally Weighted Least Squares (DWLS)}
+This differs from WLS in that it uses a modified approach thatis a multiple-step estimation involving polychoric correlations as input to create the asymptotic covariance matrix used for weighting in the WLS estimation. This is usually paired with robust estimation adjustments that improve standard error, chi-square and fit indices.
+
+\section{SmartPLS vs. seminr}
+
+\paragraph{}
+Thanks to the \href{https://github.com/sem-in-r/seminr/issues/131}{author's help on Github}, I was able to match up the model for the Mobi dataset in both seminr and SmartPLS.
+
+\paragraph{}
+The R code is as follows:
+
+\includegraphics[scale=.6]{mobi_r_code}
+
+which gives the following path coefficients,
+
+\includegraphics[scale=.9]{mobi_path_coef_seminr_2}
+
+and outer loadings.
+
+\includegraphics[scale=.9]{mobi_outer_loadings_2}
+
+\paragraph{}
+This corresponds with the results from SmartPLS:
+
+\includegraphics[scale=.75]{smartpls_mobi_data}
+
+\section{PLS-PM vs. CB-SEM}
+
+\paragraph{}
+Again, the authors provided helpful clarification on \href{https://github.com/sem-in-r/seminr/issues/132}{github}. Essentially, they said:
+
+\paragraph{}
+PLS-PM cannot natively model reflective "common factor" constructs like covariance-based SEM (CB-SEM) does. The closest that PLS-PM can come to modeling reflective constructs is by doing a post-hoc adjustment to get nearly the same weights/paths as LAVAAN/LISREL (see Dijkstra \& Henseler 2015). The reflective() function in SEMinR will try to do these post-hoc adjustments to simulate common factor results.
+
+\paragraph{}
+Dijkstra, T. K., \& Henseler, J. (2015). Consistent partial least squares path modeling. MIS quarterly, 39(2). Available at: \url{https://pdfs.semanticscholar.org/7e56/cb95c8996a46c5dff13267a651f382a73567.pdf}.
+
+\section{Data Simulation Procedure}
+
+\paragraph{} 
+The results in Section 2 seem promising regarding the abilities of seminr to replicate SmartPLS with a little more flexibility (reflective vs. composite factors and regression vs. classification weights). This helps us answer some of the questions from last week's notes - essentially if we use composite factors with mode A weights, we will arrive at the SmartPLS results.
+
+\paragraph{}
+This brings us to the main work in the deliverable - sequential data generation based on Factor Loadings, Cronbach's Alpha, Composite Reliability and AVE.
+
+\subsection{Simulated Raw Datasets}
+
+\paragraph{}
+This is the part that I am admittedly most confused about - it seems the data will all be ratings, so we will need a way to generate these algorithmically based on the different factors.
+
+\paragraph{}
+To help further my understanding, I will break down the variables described in the study background:
+
+\begin{enumerate}
+
+\item Optimism - level of optimism (three items)
+
+\item Perspective-taking - level of perspective-taking (five items)
+
+\item Information Interpretation - level of information technology implementation (three items)
+
+\item Team Performance - evaluation of team performance (three items)
+
+\item LMX - perception of quality of relationship with their leaders (seven items)
+
+\item Feedback Self-Efficacy - perception of feedback self-efficacy (three items)
+
+\item IT Experience - evaluation of IT experience (three items)
+
+\item Team Performance - evaluation of team performance (three items)
+
+\end{enumerate}
+
+\subsection{Data Questions}
+
+This brings me to some questions about the data:
+
+\begin{enumerate}
+
+\item What will the variables look like, are they indicator variables rated out of the total items?
+
+\item Will they be generated as in the Latent Growth Model (based off of a normally distributed variable multiplied by the factor loadings)?
+
+\item How do we account for Composite Reliability in the generated data? See \href{https://dl.acm.org/doi/pdf/10.1145/2544415.2544417?download=true}{this reference} for a good break down on the formula (where $\lambda_i$ are loadings and $\theta_i$ are item residuals):
+
+$$ \rho_c = \frac{\big( \sum \lambda_i \big)^2}{\big( \sum \lambda_i \big)^2 + \sum Var ( \theta_i )}$$
+
+\item Same for Cronbach's Alpha (measured for a quantity that's the sum of $K$ components $X = Y_1 + ... + Y_k$):
+
+$$ \alpha = \frac{K}{K - 1} \bigg( 1 - \frac{ \sum \sigma_{Y_i}^2}{\sigma_X^2} \bigg)$$
+
+\item and Average Variance Extracted (AVE):
+
+$$ AVE = \frac{\sum \lambda_i^2}{\sum \lambda_i^2 + \sum Var(e_i)} $$
+
+as AVE and CR depend only on the factor loadings and error variance.
+
+\end{enumerate}
+
+\subsection{Technical Report}
+
+\paragraph{}
+This can be done with R markdown similar to the Latent Growth notes (Lai 2020) and last week's notes.
+
+\subsection{Validation using SmartPLS}
+
+\paragraph{}
+This will also be pretty straightforward to verify, as long as we run PLS-PM with composite factors and mode A weights in seminr.
+
+\section{JASP: Potential for PLS-PM}
+
+\paragraph{}
+I can reach out to the author of the JASP software and try to get some technical requirements on what would be needed to add PLS-PM functionality, possibly through seminr.
+
+\end{document}
