@@ -1,0 +1,291 @@
+---
+title: "Simulation Example"
+author: "Steven Hurwitt"
+date: "4/29/2020"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+header-includes: \usepackage{amsmath}
+---
+
+## Basics
+Start by including the packages, setting seed, directory.
+
+```{r setup}
+library(seminr)
+library(mnormt)
+
+getwd()
+setwd("D:\\gerson")
+set.seed(421)
+```
+
+## Data model
+We start similar to Lai 2020 by simulating the latent means and covariances. We will use these with the factor loadings to generate the data. Thus, the data is highly variable depending on different choices of means ($\alpha$) and covariances ($\phi$)
+
+$$\begin{bmatrix} y_{0i} \\ y_{1i} \\ y_{2i} \end{bmatrix} = \Lambda \begin{bmatrix} \eta_{1i} \\ \eta_{2i} \\ \eta_{3i} \end{bmatrix} + \begin{bmatrix} e_{0i} \\ e_{1i} \\ e_{2i} \end{bmatrix}$$
+
+
+```{r generation}
+n_input = list(50, 100, 500)
+
+var_names = c('opt1','opt2', 'opt3', 'pt1', 'pt2', 'pt3', 'pt4', 'pt5', 'fse1','fse2','fse3', 'teamperf1', 'teamperf2', 'teamperf3', 'ict1','ict2','ict3', 'ITexp1', 'ITexp2', 'ITexp3', 'infint1', 'infint2', 'infint3', 'lmx1', 'lmx2', 'lmx3', 'lmx4', 'lmx5', 'lmx6', 'lmx7')
+
+opt_lambda = c(.86, .88, .8)
+pt_lambda = c(.78, .8, .64, .8, .75)
+fse_lambda = c(.85, .89, .7)
+teamperf_lambda = c(.85, .82, .75)
+ict_lambda = c(.83, .68, .67)
+ITexp_lambda = c(.84, .74, .75)
+infint_lambda = c(.73, .82, .78)
+lmx_lambda = c(.74, .68, .75, .78, .7, .62, .79)
+
+lambda_input = list(opt_lambda, pt_lambda, fse_lambda, teamperf_lambda, ict_lambda, ITexp_lambda, infint_lambda, lmx_lambda)
+
+opt_alpha = c(2, 4, 6)
+pt_alpha = c(4, 3, 5, 3, 4)
+fse_alpha = c(3, 5, 4)
+teamperf_alpha = c(3, 4, 5)
+ict_alpha =  c(4, 3, 4)
+ITexp_alpha = c(2, 5, 4)
+infint_alpha = c(5, 4, 3)
+lmx_alpha = c(3, 4, 3, 5, 2, 6, 3)
+
+alpha_input = list(opt_alpha, pt_alpha, fse_alpha, teamperf_alpha, ict_alpha, ITexp_alpha, infint_alpha, lmx_alpha)
+
+opt_phi = matrix(c(1, .2, .3, 
+                   .2, 1, .3, 
+                   .3, .3, 1), nrow = 3)
+
+pt_phi = matrix(c(1, .2, .3, .4, .5, 
+                  .2, 1, .4, .5, .4,
+                  .3, .4, 1, .5, .2,
+                  .4, .5, .5, 1, .2,
+                  .5, .4, .2, .2, 1), nrow = 5)
+
+fse_phi = matrix(c(1, .2, .3, 
+                   .2, 1, .2, 
+                   .3, .2, 1), nrow = 3)
+
+teamperf_phi = matrix(c(1, .3, .2, 
+                        .3, 1, .2,
+                        .2, .2, 1), nrow = 3)
+
+ict_phi =matrix(c(1, .3, .5, 
+                  .3, 1, .4,
+                  .5, .4, 1), nrow = 3)
+
+ITexp_phi = matrix(c(1, .5, .3, 
+                    .5, 1, .3,
+                    .3, .3, 1), nrow = 3)
+
+infint_phi = matrix(c(1, .2, .3, 
+                     .2, 1, .2,
+                     .3, .2, 1), nrow = 3)
+
+lmx_phi = matrix(c(1, .3, .4, .2, .5, .4, .3,
+                   .3, 1, .2, .4, .5, .3, .4,
+                   .4, .2, 1, .4, .3, .2, .4,
+                   .2, .4, .4, 1, .3, .5, .2,
+                   .5, .5, .3, .3, 1, .4, .4,
+                   .4, .3, .2, .5, .4, 1, .3,
+                   .3, .4, .4, .2, .4, .3, 1), nrow = 7)
+
+phi_input = list(opt_phi, pt_phi, fse_phi, teamperf_phi, ict_phi, ITexp_phi, infint_phi, lmx_phi)
+
+lambda = c(opt_lambda, pt_lambda, fse_lambda, teamperf_lambda, ict_lambda, ITexp_lambda, infint_lambda, lmx_lambda)
+
+CR = c(.5, .7, .9)
+
+sum_err_var = sum(lambda)^2/CR - sum(lambda)^2
+err_var = sum_err_var / 30
+err_var = as.list(err_var)
+```
+
+## Simulating data
+
+In the simulated data, they all follow the normal distribution with given means and covariances.
+
+$$\begin{bmatrix} \eta_{1i} \\ \eta_{2i} \\ \eta_{3i} \end{bmatrix} \sim \mathcal{N} \bigg( \begin{bmatrix} \alpha_{1} \\ \alpha_{2} \\ \alpha_{3} \end{bmatrix},\begin{bmatrix} \phi_{11} \ \phi_{12} \ \phi_{13} \\ \phi_{21} \ \phi_{22} \ \phi_{23} \\ \phi_{31} \ \phi_{32} \ \phi_{33}\end{bmatrix} \bigg) $$
+
+The error variances are normally distributed as:
+
+$$\begin{bmatrix} e_{0i} \\ e_{1i} \\ e_{2i} \end{bmatrix} \sim \mathcal{N} \Bigg( \begin{bmatrix} 0 \\ 0 \\ 0 \end{bmatrix}, \begin{bmatrix} \theta_{11} \ 0 \ 0 \\ 0 \ \theta_{22} \ 0 \\ 0 \ 0 \ \theta_{33}  \end{bmatrix} \Bigg)$$
+We will generate data for all of the variables: optimism, perspective taking, self efficacy and team performance.
+
+```{r data_sim}
+master_data_gen = function(N, err, alpha, phi, lambda, lambda_input){
+
+eta_gen = function(N, alpha, phi){
+  eta = rmnorm(N, mean = alpha, varcov = phi)
+  return(eta)
+}
+
+
+raw_data_list = mapply(function(alpha, phi){eta_gen(N, alpha, phi)},
+                       alpha = alpha, phi = phi)
+
+
+# error var
+error_gen = function(error_var, alpha, N){
+  theta = diag(error_var, nrow = length(alpha))
+  error = rmnorm(N, varcov = theta)
+  return(error)
+}
+
+
+errors_input = lapply(alpha, function(alpha){error_gen(err, alpha, N)})
+
+# gen lambda * alpha + error
+lambda_gen = function(lambda_vec){
+  Lambda = matrix(lambda_vec, length(lambda_vec), length(lambda_vec))
+  return(t(Lambda))
+}
+
+Lambda_input = lapply(lambda_input, lambda_gen)
+
+
+data = function(eta, lambda, error){
+  return(tcrossprod(eta, lambda) + error)}
+
+final_data_list = mapply(function(eta, lambda, error){data(eta, lambda, error)}, eta = raw_data_list, lambda = Lambda_input, error = errors_input)
+
+final_data = data.frame(matrix(unlist(final_data_list), ncol = 30), stringsAsFactors = F)
+
+colnames(final_data) = var_names
+final_data = ceiling(final_data)
+return(final_data)
+}
+
+```
+
+To simulate according to composite reliability, we need to know that:
+
+$$ CR = \frac{(\sum \lambda_i)^2}{(\sum \lambda_i)^2 + \sum \sigma_i^2}$$
+
+We can then solve this for the sum of the error variances:
+
+$$\sum \sigma_i^2 = \frac{(\sum \lambda_i)^2}{CR} - (\sum \lambda_i)^2$$
+We will choose to uniformly distribute the sum of the error variances as the variance in the error term for each generated variable.
+
+
+
+```{r error_var}
+
+
+
+```
+
+Now we generate the data by way of 
+
+$$\Lambda \begin{bmatrix} \eta_{1i} \\ \eta_{2i} \\ \eta_{3i} \end{bmatrix} + \begin{bmatrix} e_{0i} \\ e_{1i} \\ e_{2i} \end{bmatrix}$$
+```{r data_gen}
+
+```
+
+
+Then we can combine the simulated data into the final dataset.
+```{r dataset}
+
+
+```
+
+Finally, we can run PLS-SEM on the data and fit the measurement and structural models. These are summarized and bootstrapped accordingly for all three composite reliability scores.
+```{r model1}
+df1_mm <- constructs(
+  composite("COMP",         multi_items("opt", 1:3), weights = mode_A),
+  composite("LIKE",   multi_items("pt", 1:5), weights = mode_A),
+  composite("CUSA",       multi_items("fse", 1:3), weights = mode_A),
+  composite("CUSL",         multi_items("teamperf", 1:3), weights = mode_A)
+)
+
+#create structural model
+df1_sm <- relationships(
+  paths(from = "COMP",        to = c("CUSA", "CUSL")),
+  paths(from = "LIKE",  to = c("CUSA", "CUSL")),
+  paths(from = "CUSA",      to = "CUSL")
+)
+
+#model estimation
+df1_pls <- estimate_pls(data = df1,
+                         measurement_model = df1_mm,
+                         structural_model = df1_sm,
+                         inner_weights = path_weighting)
+
+summary(df1_pls)
+
+#bootstrap
+boot_df1_pls <- bootstrap_model(seminr_model = df1_pls,
+                                 nboot = 5000,
+                                 cores = 2)
+
+summary(boot_df1_pls)
+```
+
+The second model.
+```{r model2}
+df2_mm <- constructs(
+  composite("COMP",         multi_items("opt", 1:3), weights = mode_A),
+  composite("LIKE",   multi_items("pt", 1:5), weights = mode_A),
+  composite("CUSA",       multi_items("fse", 1:3), weights = mode_A),
+  composite("CUSL",         multi_items("teamperf", 1:3), weights = mode_A)
+)
+
+#create structural model
+df2_sm <- relationships(
+  paths(from = "COMP",        to = c("CUSA", "CUSL")),
+  paths(from = "LIKE",  to = c("CUSA", "CUSL")),
+  paths(from = "CUSA",      to = "CUSL")
+)
+
+#model estimation
+df2_pls <- estimate_pls(data = df2,
+                        measurement_model = df2_mm,
+                        structural_model = df2_sm,
+                        inner_weights = path_weighting)
+
+summary(df2_pls)
+
+#bootstrap
+boot_df2_pls <- bootstrap_model(seminr_model = df2_pls,
+                                nboot = 5000,
+                                cores = 2)
+
+summary(boot_df2_pls)
+```
+
+The third.
+```{r model3}
+#create measurement model matrix
+df3_mm <- constructs(
+  composite("COMP",         multi_items("opt", 1:3), weights = mode_A),
+  composite("LIKE",   multi_items("pt", 1:5), weights = mode_A),
+  composite("CUSA",       multi_items("fse", 1:3), weights = mode_A),
+  composite("CUSL",         multi_items("teamperf", 1:3), weights = mode_A)
+)
+
+#create structural model
+df3_sm <- relationships(
+  paths(from = "COMP",        to = c("CUSA", "CUSL")),
+  paths(from = "LIKE",  to = c("CUSA", "CUSL")),
+  paths(from = "CUSA",      to = "CUSL")
+)
+
+#model estimation
+df3_pls <- estimate_pls(data = df3,
+                        measurement_model = df3_mm,
+                        structural_model = df3_sm,
+                        inner_weights = path_weighting)
+
+summary(df3_pls)
+
+#bootstrap
+boot_df3_pls <- bootstrap_model(seminr_model = df3_pls,
+                                nboot = 5000,
+                                cores = 2)
+
+
+summary(boot_df3_pls)
+
+```
